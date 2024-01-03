@@ -1,0 +1,23 @@
+#!/bin/bash
+if [ $# -lt 1 ]
+then
+    echo "USAGE: ./new Title Here as Normal Text"
+    exit 1
+fi
+ymd="$(date +%Y-%m-%d)"
+slug="${ymd}_$(echo $@ | sed 's/ \+/-/g' | tr '[A-Z]' '[a-z]')"
+dir="$slug"
+mkdir "${dir}" 
+cd "$dir"
+cat >index.md<<EOF
+---
+title: $@
+author: "Dr. K. D. Murray"
+date: $ymd
+slug: $slug
+tags:
+  - tag1...
+---
+
+# $@
+EOF

@@ -1,0 +1,44 @@
+#!/bin/bash
+HERE="$(dirname "$(realpath "$0")")"
+if [ "$#" -lt 1 ]
+then
+    echo "USAGE: $0 [-i] file.md [outputdir]"
+    exit 1
+fi
+
+INOT=0
+if [ "$1" == "-i" ]
+then
+    INOT=1
+    shift 1
+fi
+IN="$1"
+OUTDIR="$(realpath "${2:-www/}")"
+rm -rf "${OUTDIR}" && mkdir "$OUTDIR"
+OUT="${OUTDIR}/$(basename "$1" .md).html"
+shift 1 
+
+set -euo pipefail
+RESOURCES=$HERE/.resources
+export MD2HTML_OUTDIR="$OUTDIR"
+pandoc_version=$(pandoc --version |& head -n 1 | grep -Po "pandoc \d")
+OPTS=(--filter $RESOURCES/panfilt.py --standalone --csl "${RESOURCES}/kdmthesis.csl" --to html5 -c "${RESOURCES}/kultiad-serif.css" --katex )
+if [ "$pandoc_version" == "pandoc 2" ]
+then
+    OPTS+=( --self-contained )
+else
+    OPTS+=( --embed-resources )
+fi
+
+
+cd "$(dirname "$IN")"
+IN="$(basename "$IN")"
+#echo pandoc -o "$OUT" "${OPTS[@]}" "$IN"
+pandoc -o "$OUT" "${OPTS[@]}" "$IN"
+while [ $INOT -gt 0 ]
+do
+    inotifywait -qe close_write $IN --format "%w%f WRITE" || true
+    #echo pandoc -o "$OUT" "${OPTS[@]}" "$IN"
+    pandoc -o "$OUT" "${OPTS[@]}" "$IN"
+done
+
